@@ -17,7 +17,7 @@ class SerialApiImpl(private val device: Device): SerialApi {
      */
     override fun send(data: ByteArray) {
         // Логування інформації про відправлення даних
-        println("Sending data to ${device.name}")
+        println("Base send")
     }
 
     /**
@@ -29,7 +29,7 @@ class SerialApiImpl(private val device: Device): SerialApi {
      */
     override fun receive(): ByteArray {
         // Логування інформації про отримання даних
-        println("Receiving data from ${device.name}")
+        println("Base receive")
         // Повертаємо заздалегідь визначений масив байт
         return ByteArray(0x01) // Приклад отриманого відповіді
     }

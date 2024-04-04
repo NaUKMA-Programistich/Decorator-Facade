@@ -8,6 +8,10 @@ package org.example.decorator
  */
 class SerialAuthDecorator(private val source: SerialApi): SerialApiDecorator(source) {
 
+    init {
+        println("SerialAuthDecorator created")
+    }
+
     /**
      * Перевизначена функція для відправлення даних.
      * Додає до масиву даних контрольну суму CRC на останню позицію, а потім відправляє змінений масив.
@@ -15,44 +19,40 @@ class SerialAuthDecorator(private val source: SerialApi): SerialApiDecorator(sou
      * @param data Масив байтів даних, який потрібно відправити.
      */
     override fun send(data: ByteArray) {
+        println("Auth send")
         // Створення нового буфера для даних з додатковим місцем для CRC.
         val buffer = ByteArray(data.size + 1)
         // Копіювання існуючих даних у новий буфер.
         data.copyInto(buffer)
         // Обчислення та додавання CRC до кінця буфера.
-        buffer[buffer.size - 1] = calculateCrc(data)
-        // Виведення обчисленого CRC для перевірки.
-        println("CRC: ${buffer[buffer.size - 1]}")
+        buffer[buffer.size - 1] = data.calculateCrc()
         // Відправлення буфера з даними та CRC через базовий метод.
-        super.send(buffer)
+        source.send(buffer)
     }
 
-    /**
-     * Функція для обчислення контрольної суми CRC.
-     * Використовується для забезпечення цілісності даних.
-     *
-     * @param data Масив байтів даних, для якого потрібно обчислити CRC.
-     * @return Контрольна сума CRC як байт.
-     */
-    private fun calculateCrc(data: ByteArray): Byte {
-        // Ініціалізація CRC нульовим значенням.
-        var crc: Byte = 0x00
-        // Ітерація по кожному байту даних.
-        data.forEach { byte ->
-            var b = byte
-            // Обробка кожного біта в байті.
-            for (i in 0 until 8) {
-                // XOR операція між CRC та бітом даних, враховуючи тільки старший біт.
-                val mix = (crc.toInt() xor b.toInt()) and 0x80
-                // Зсув CRC вліво.
-                crc = (crc.toInt() shl 1).toByte()
-                // Якщо в результаті mix вийшло ненульове значення, виконуємо XOR з 0x07.
-                if (mix != 0) crc = (crc.toInt() xor 0x07).toByte()
-                // Зсув поточного байта даних вліво.
-                b = (b.toInt() shl 1).toByte()
-            }
-        }
-        // Повернення обчисленого CRC.
-        return crc
+    override fun receive(): ByteArray {
+        println("Auth receive")
+        return source.receive()
     }
+}
+
+/**
+ * Функція для обчислення контрольної суми CRC.
+ * Використовується для забезпечення цілісності даних.
+ *
+ * @param data Масив байтів даних, для якого потрібно обчислити CRC.
+ * @return Контрольна сума CRC як байт.
+ */
+fun ByteArray.calculateCrc(): Byte {
+    var crc: Byte = 0x00
+    this.forEach { byte ->
+        var b = byte
+        for (i in 0 until 8) {
+            val mix = (crc.toInt() xor b.toInt()) and 0x80
+            crc = (crc.toInt() shl 1).toByte()
+            if (mix != 0) crc = (crc.toInt() xor 0x07).toByte()
+            b = (b.toInt() shl 1).toByte()
+        }
+    }
+    return crc
 }

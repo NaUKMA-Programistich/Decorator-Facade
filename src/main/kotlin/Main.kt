@@ -38,34 +38,78 @@ suspend fun testFacade() {
  */
 fun testDecorator() {
     // Прапорець для умовного декорування
-    val flag = true
+    val isNeedAuth = true
+    val isNeedThrottler = true
+    val isNeedDuplicate = true
     println("Test decorator:")
 
     // Створення базового пристрою
     val device = Device("Device")
     // Ініціалізація базового API для взаємодії з пристроєм
     var serialApi: SerialApi = SerialApiImpl(device)
-    // Відправка даних через базове API
-    serialApi.send(byteArrayOf(1, 2, 3, 4, 5))
+    println("---------------------")
 
     // Умовне декорування з додаванням функціоналу авторизації
-    if (flag) {
+    if (isNeedAuth) {
         // Декорування serialApi для додавання функціоналу авторизації
         serialApi = SerialAuthDecorator(serialApi)
-        // Відправка даних через декорований API з авторизацією
-        serialApi.send(byteArrayOf(1, 2, 3, 4, 5))
-        // Отримання швидкості з'єднання
-        serialApi.getSpeed()
+        println("---------------------")
     }
 
-    // Додаткове декорування для контролю перевищення потоку даних
-    serialApi = SerialOverflowThrottlerDecorator(serialApi)
-    // Отримання даних через декорований API з контролем перевищення
-    serialApi.receive()
-    // Відправка даних через декорований API з контролем перевищення
-    serialApi.send(byteArrayOf(1, 2, 3, 4, 5))
-    // Отримання швидкості з'єднання після декорування
-    serialApi.getSpeed()
+    if (isNeedDuplicate) {
+        // Декорування serialApi для додавання функціоналу дублювання
+        serialApi = SerialDuplicateDecorator(serialApi)
+        println("---------------------")
+    }
 
+    if (isNeedThrottler) {
+        // Декорування serialApi для додавання функціоналу обмеження потоку
+        serialApi = SerialOverflowThrottlerDecorator(serialApi)
+        println("---------------------")
+    }
+
+    serialApi.receive()
     println("---------------------")
+
+    serialApi.send(byteArrayOf(0x01, 0x02, 0x03, 0x04, 0x05))
+    println("---------------------")
+}
+
+fun testRawDecorator() {
+    val device = Device("Device")
+    // Ініціалізація базового API для взаємодії з пристроєм
+    val serialApi: SerialApi = SerialApiImpl(device)
+    println("---------------------")
+
+    // Декорування serialApi для додавання функціоналу авторизації
+    val authAndDuplicate = object : SerialApi {
+        override fun send(data: ByteArray) {
+            println("AuthAndDuplicate: Send data")
+
+            // Виклик методу send() базового API
+            val duplicateData = data + data
+            val authData = duplicateData + duplicateData.calculateCrc()
+
+            serialApi.send(authData)
+        }
+
+        override fun receive(): ByteArray {
+            println("AuthAndDuplicate: Receive data")
+
+            val data = serialApi.receive()
+            val halfData = data.copyOfRange(0, data.size / 2)
+            val crc = data.copyOfRange(data.size / 2, data.size)
+
+            if (halfData.calculateCrc() != crc[0]) {
+                throw Exception("CRC check failed")
+            }
+
+            return halfData
+        }
+
+        override fun getSpeed(): Int {
+            return serialApi.getSpeed()
+        }
+    }
+    authAndDuplicate.receive()
 }

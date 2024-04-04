@@ -1,50 +1,54 @@
 package org.example.decorator
 
 /**
- * Decorator class for limiting the size of the buffer in a serial communication API.
- * This class implements the SerialApi interface and uses a decorator pattern to add new functionality
- * (buffer size control) on top of the existing serial API functionality.
+ * Декоратор для обмеження розміру буфера в API серійної комунікації.
+ * Цей клас реалізує інтерфейс SerialApi і використовує патерн декоратора для додавання нової функціональності
+ * (контроль розміру буфера) до існуючої функціональності серійного API.
  *
- * @param source The SerialApi instance that this decorator wraps. All calls are forwarded to this source
- * after the additional logic implemented by this decorator is executed.
+ * @param source Екземпляр SerialApi, який цей декоратор обгортає. Всі виклики перенаправляються до цього джерела
+ * після виконання додаткової логіки, реалізованої цим декоратором.
  */
 class SerialOverflowThrottlerDecorator(private val source: SerialApi) : SerialApiDecorator(source) {
-    // Internal buffer to temporarily store the data before forwarding it to the source SerialApi.
+    init {
+        println("SerialOverflowThrottlerDecorator created")
+    }
+
+    // Внутрішній буфер для тимчасового зберігання даних перед їхнім перенаправленням до джерела SerialApi.
     private val buffer = mutableListOf<Byte>()
 
     companion object {
-        // Maximum allowed size of the buffer. Attempts to add data beyond this limit will result in an exception.
+        // Максимально допустимий розмір буфера. Спроби додати дані понад цей ліміт призведуть до винятку.
         private const val MAX_BUFFER_SIZE = 1024
     }
 
     /**
-     * Sends data through the serial API while enforcing the buffer size limit.
-     * If adding the new data would exceed the maximum buffer size, an IllegalStateException is thrown.
-     * Otherwise, the data is added to the buffer and then sent through the source SerialApi.
+     * Відправляє дані через серійний API, контролюючи при цьому ліміт розміру буфера.
+     * Якщо додавання нових даних перевищує максимальний розмір буфера, кидається IllegalStateException.
+     * В іншому випадку, дані додаються до буфера та відправляються через джерело SerialApi.
      *
-     * @param data The data to be sent.
-     * @throws IllegalStateException if adding the data would exceed the maximum buffer size.
+     * @param data Дані для відправлення.
+     * @throws IllegalStateException якщо додавання даних перевищить максимальний розмір буфера.
      */
     override fun send(data: ByteArray) {
+        println("OverflowThrottler send")
         if (buffer.size + data.size > MAX_BUFFER_SIZE) {
-            throw IllegalStateException("Buffer overflow")
+            throw IllegalStateException("Переповнення буфера")
         }
         buffer.addAll(data.toList())
-        println("Buffer size: ${buffer.size}")
         source.send(data)
     }
 
     /**
-     * Receives data from the serial API and removes it from the internal buffer.
-     * This method calls the receive method of the source SerialApi, removes the received data from the buffer,
-     * and then returns the data.
+     * Отримує дані з серійного API і видаляє їх з внутрішнього буфера.
+     * Цей метод викликає метод прийому даних від джерела SerialApi, видаляє отримані дані з буфера,
+     * а потім повертає дані.
      *
-     * @return The data received from the serial API.
+     * @return Дані, отримані з серійного API.
      */
     override fun receive(): ByteArray {
         val data = source.receive()
         buffer.removeAll(data.toList())
-        println("Buffer size: ${buffer.size}")
+        println("OverflowThrottler receive")
         return data
     }
 }
