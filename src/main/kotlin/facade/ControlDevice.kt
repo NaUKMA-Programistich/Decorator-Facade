@@ -3,19 +3,30 @@ package org.example.facade
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
+// Клас `ControlDevice` відповідає за керування певним пристроєм.
+// Використовується у фасадному шаблоні проектування для спрощення інтерфейсу керування.
 class ControlDevice {
+
+    // Асинхронний метод `turnOn` вмикання пристрою.
+    // Чекає випадкову затримку від 1 до 5 секунд, щоб імітувати реальний процес вмикання.
+    // Після затримки відправляє команду вмикання (0x01) через BLE інтерфейс.
     suspend fun turnOn() {
-        delay(Random.nextLong(1000, 5000))
-        SerialBLE.shared.send(byteArrayOf(0x01))
+        delay(Random.nextLong(1000, 5000)) // Імітація затримки перед вмиканням
+        SerialBLE.shared.send(byteArrayOf(0x01)) // Відправлення команди вмикання
     }
 
+    // Асинхронний метод `turnOff` вимикання пристрою.
+    // Працює аналогічно до методу `turnOn`, але відправляє команду вимикання (0x00).
     suspend fun turnOff() {
-        delay(Random.nextLong(1000, 5000))
-        SerialBLE.shared.send(byteArrayOf(0x00))
+        delay(Random.nextLong(1000, 5000)) // Імітація затримки перед вимиканням
+        SerialBLE.shared.send(byteArrayOf(0x00)) // Відправлення команди вимикання
     }
 
+    // Асинхронний метод `setMode` для встановлення режиму роботи пристрою.
+    // Приймає ціле число `mode`, яке представляє режим.
+    // Після випадкової затримки відправляє команду зміни режиму (0x02) разом з вказаним режимом.
     suspend fun setMode(mode: Int) {
-        delay(Random.nextLong(1000, 5000))
-        SerialBLE.shared.send(byteArrayOf(0x02, mode.toByte()))
+        delay(Random.nextLong(1000, 5000)) // Імітація затримки перед встановленням режиму
+        SerialBLE.shared.send(byteArrayOf(0x02, mode.toByte())) // Відправлення команди зміни режиму
     }
 }
